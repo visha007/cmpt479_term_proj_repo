@@ -91,3 +91,5 @@ python -m cmpt479_term_proj_repo.cli run
 
 ---
 
+## Realistic Example Test
+[See example here](EXAMPLE.md)

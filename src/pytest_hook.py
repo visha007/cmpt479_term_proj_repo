@@ -95,7 +95,7 @@ def pytest_runtest_logfinish(nodeid: str, location: tuple[str, int | None, str])
 
 def pytest_sessionfinish(session: Session, exitstatus: int | ExitCode):
     global new_cache
-    
+
     if not ekstazi_enabled:
         return
 
