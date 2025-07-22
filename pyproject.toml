@@ -5,9 +5,8 @@ build-backend = "hatchling.build"
 [project]
 name = "cmpt479-term-proj"
 version = "0.1.0"
-classifiers = [
-    "Framework :: Pytest",
-]
+classifiers = ["Framework :: Pytest"]
+dependencies = ["coverage"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
