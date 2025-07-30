@@ -1,18 +1,13 @@
-import os
-import shutil
-import pytest
-
 import coverage
+import pytest
+from pytest import TestReport
 from _pytest.config import Config, ExitCode
 from _pytest.main import Session
 from _pytest.nodes import Item
 
-from .storage import loadCache, saveCache, getHash
+from .storage import Storage, clear_cache
 
-CACHE_FILE = "jsonData/deps.json"
-
-new_cache = None
-cache = None
+dep_cache = None
 ekstazi_enabled = False
 cov = None
 
@@ -32,14 +27,16 @@ def pytest_addoption(parser):
 
 # hook called when configuring pytest
 def pytest_configure(config: Config):
-    global ekstazi_enabled
-    if config.getoption("--ekstazi") or config.getoption("--ekstazi-clean"):
-        ekstazi_enabled = True
+    global ekstazi_enabled, dep_cache
     if config.getoption("--ekstazi-clean"):
-        shutil.rmtree("jsonData", ignore_errors=True)
+        clear_cache(config)
         terminal = config.pluginmanager.get_plugin("terminalreporter")
         if terminal:
             terminal.write_line("[ekstazi] Cleaned ekstazi cache")
+
+    if config.getoption("--ekstazi") or config.getoption("--ekstazi-clean"):
+        dep_cache = Storage(config)
+        ekstazi_enabled = True
 
 
 # hook called after pytest collection has been performed
@@ -48,21 +45,17 @@ def pytest_collection_modifyitems(session: Session, config: Config, items: list[
     if not ekstazi_enabled:
         return
 
-    os.makedirs("jsonData", exist_ok=True)
-    cache = loadCache(CACHE_FILE)
-    new_cache = {}
+    if dep_cache.is_first_run():
+        # all tests run as normal
+        return
 
     for test in items:
+        if test.get_closest_marker("skip"):
+            # already skipped so do nothing
+            continue
+
         test_id = test.nodeid
-        deps = cache.get(test_id, {}).get("deps", [])
-        if not deps:
-            deps = {}
-        changed = any(
-            not os.path.exists(dep) or getHash(dep) != cache[test_id]["hashes"].get(dep)
-            for dep in deps
-        )
-        # TODO: Skip only if previous run was successful
-        if test_id in cache and not changed:
+        if dep_cache.is_skippable(test_id):
             test.add_marker(pytest.mark.skip(reason="Test and dependencies unchanged"))
 
 
@@ -77,26 +70,20 @@ def pytest_runtest_logstart(nodeid: str, location: tuple[str, int | None, str]):
     cov.start()
 
 
-# hook called after the setup, running, and teardown of every test
-def pytest_runtest_logfinish(nodeid: str, location: tuple[str, int | None, str]):
-    global ekstazi_enabled, cache, new_cache, cov
-
-    if not ekstazi_enabled:
+def pytest_runtest_logreport(report: TestReport):
+    if not ekstazi_enabled or report.when != "teardown" or report.skipped:
         return
 
     cov.stop()
 
+    test_id = report.nodeid
     used_files = cov.get_data().measured_files()
-    new_cache[nodeid] = {
-        "deps": list(used_files),
-        "hashes": {f: getHash(f) for f in used_files if os.path.exists(f)},
-    }
+
+    dep_cache.update_test(test_id, used_files, report.outcome)
 
 
 def pytest_sessionfinish(session: Session, exitstatus: int | ExitCode):
-    global new_cache
-
     if not ekstazi_enabled:
         return
 
-    saveCache(CACHE_FILE, new_cache)
+    dep_cache.save_cache()
