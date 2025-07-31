@@ -1,4 +1,6 @@
 import hashlib
+import io
+import tokenize
 
 from _pytest.config import Config
 
@@ -49,14 +51,36 @@ class Storage:
                 self._changed_files.add(file)
                 self._data["files"][file] = new_hash
 
+    
+    
     def _get_hash(self, path):
         """
         Raises:
             FileNotFoundError: File not found
             NotADirectoryError: Directory not found
         """
-        with open(path, "rb") as f:
-            return hashlib.sha256(f.read()).hexdigest()
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                source = f.read()
+            normalized_code = self._strip_comments(source)
+            return hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
+        except UnicodeDecodeError:
+            # Fall back to original method for binary/non-source files
+            with open(path, "rb") as f:
+                return hashlib.sha256(f.read()).hexdigest()
+
+    def _strip_comments(self, source):
+        result = []
+        io_obj = io.StringIO(source)
+        for tok_type, tok_str, *_ in tokenize.generate_tokens(io_obj.readline):
+            if tok_type == tokenize.COMMENT:
+                continue  # Skip comments
+            elif tok_type == tokenize.STRING:
+                # Skip module-level or function-level docstrings
+                if result and result[-1] == '\n':
+                    continue
+            result.append(tok_str)
+        return ''.join(result)
 
     def _load_data(self):
         return self._config.cache.get(DEPS_FILE_PATH, EMPTY_DICT)
