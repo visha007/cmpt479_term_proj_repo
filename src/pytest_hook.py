@@ -71,7 +71,7 @@ def pytest_runtest_logstart(nodeid: str, location: tuple[str, int | None, str]):
 
 
 def pytest_runtest_logreport(report: TestReport):
-    if not ekstazi_enabled or report.when != "teardown" or report.skipped:
+    if not ekstazi_enabled or report.when != "call":
         return
 
     cov.stop()
