@@ -22,8 +22,7 @@ This repo will contain code for our term project for CMPT479 D2 (Summer 2025)
 From your pytest project using `pip`, do
 
 ```bash
-pip install path/to/cmpt479_term_proj_repo/
-pip install -r path/to/cmpt479_term_proj_repo/requirements.txt
+pip install -e path/to/cmpt479_term_proj_repo/
 ```
 
 ---
@@ -35,6 +34,7 @@ From the pytest project root (where `test_sample.py` is), run:
 ```bash
 pytest --ekstazi
 ```
+
 
 This will:
 - Run only tests whose dependencies have changed
@@ -56,10 +56,10 @@ This removes the `jsonData` directory at the start of the pytest run.
 
 ## Where Is the Cache Stored?
 
-- Dependencies and hash info are stored in:
+- Dependencies and hash info are stored in the pytest cache:
 
   ```
-  pytest_project_root/jsondata/deps.json
+  pytest_project_root/.pytest_cache/v/cache/ekstazi_dependencies
   ```
 
 ---
@@ -82,7 +82,7 @@ def add(a, b):
     return a + b
 ```
 
-Add `cmpt479_term_proj_repo` and `requirements.txt` dependencies.
+Add the `cmpt479_term_proj_repo` dependency.
 
 Now run:
 

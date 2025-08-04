@@ -12,4 +12,4 @@ dependencies = ["coverage"]
 packages = ["src"]
 
 [project.entry-points.pytest11]
-yourplugin = "src.pytest_hook"
+ekstazi = "src.pytest_hook"

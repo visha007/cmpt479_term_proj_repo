@@ -2,7 +2,7 @@ import hashlib
 
 from _pytest.config import Config
 
-DEPS_FILE_PATH = "ekstazi/dependencies.json"
+DEPS_FILE_PATH = "ekstazi_dependencies"
 EMPTY_DICT = {"files": {}, "tests": {}}
 
 
