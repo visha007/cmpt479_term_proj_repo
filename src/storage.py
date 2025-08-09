@@ -1,6 +1,8 @@
 import hashlib
 import io
 import tokenize
+import ast
+import hashlib
 
 from _pytest.config import Config
 
@@ -10,7 +12,6 @@ EMPTY_DICT = {"files": {}, "tests": {}}
 
 def clear_cache(config: Config):
     config.cache.set(DEPS_FILE_PATH, EMPTY_DICT)
-
 
 class Storage:
     _tracked_files = set()
@@ -29,6 +30,49 @@ class Storage:
     }
     """
 
+    def _get_ast_hash(self, path):
+        """
+        Returns a SHA256 hash of the Python file's AST, ignoring
+        comments, whitespace, and docstrings.
+        """
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                source = f.read()
+
+            # Parse into AST
+            tree = ast.parse(source)
+
+            # Remove docstrings from all nodes
+            self._remove_docstrings(tree)
+
+            # Get a normalized string dump without line/col info
+            ast_str = ast.dump(tree, include_attributes=False)
+
+            return hashlib.sha256(ast_str.encode("utf-8")).hexdigest()
+
+        except (SyntaxError, UnicodeDecodeError):
+            # Fallback: binary or non-Python files
+            with open(path, "rb") as f:
+                return hashlib.sha256(f.read()).hexdigest()
+
+
+    def _remove_docstrings(self, node):
+        """
+        Recursively remove docstrings from an AST node.
+        """
+        if not hasattr(node, "body"):
+            return
+
+        if isinstance(node.body, list) and node.body:
+            # Check if first statement is a docstring
+            if (isinstance(node.body[0], ast.Expr) and
+                isinstance(node.body[0].value, ast.Constant) and
+                isinstance(node.body[0].value.value, str)):
+                node.body.pop(0)
+
+            for child in node.body:
+                self._remove_docstrings(child)
+    
     def __init__(self, config: Config):
         self._config = config
         self._data = self._load_data()
@@ -54,20 +98,12 @@ class Storage:
     
     
     def _get_hash(self, path):
-        """
-        Raises:
-            FileNotFoundError: File not found
-            NotADirectoryError: Directory not found
-        """
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                source = f.read()
-            normalized_code = self._strip_comments(source)
-            return hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
-        except UnicodeDecodeError:
-            # original method for binary/non-source files
-            with open(path, "rb") as f:
-                return hashlib.sha256(f.read()).hexdigest()
+            return self._get_ast_hash(path)
+        except FileNotFoundError:
+            raise
+        except NotADirectoryError:
+            raise
 
     def _strip_comments(self, source):
         result = []
