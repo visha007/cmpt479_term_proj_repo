@@ -89,7 +89,8 @@ def pytest_runtest_logreport(report: TestReport):
     cov.stop()
 
     test_id = report.nodeid
-    used_files = cov.get_data().measured_files()
+    data = cov.get_data()
+    used_files = [f for f in data.measured_files() if len(data.lines(f))]
 
     dep_cache.update_test(test_id, used_files, report.outcome)
 
