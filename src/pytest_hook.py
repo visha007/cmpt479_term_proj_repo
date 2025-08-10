@@ -78,6 +78,7 @@ def pytest_runtest_logstart(nodeid: str, location: tuple[str, int | None, str]):
         run_start = time.perf_counter()
 
     cov = coverage.Coverage(data_file=None)
+    cov.config.disable_warnings = ["module-not-measured", "no-data-collected"]
     cov.start()
 
 
