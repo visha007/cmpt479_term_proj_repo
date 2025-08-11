@@ -31,21 +31,13 @@ class Storage:
     """
 
     def _get_ast_hash(self, path):
-        """
-        Returns a SHA256 hash of the Python file's AST, ignoring
-        comments, whitespace, and docstrings.
-        """
         try:
             with open(path, "r", encoding="utf-8") as f:
                 source = f.read()
 
             # Parse into AST
             tree = ast.parse(source)
-
-            # Remove docstrings from all nodes
             self._remove_docstrings(tree)
-
-            # Get a normalized string dump without line/col info
             ast_str = ast.dump(tree, include_attributes=False)
 
             return hashlib.sha256(ast_str.encode("utf-8")).hexdigest()
@@ -57,14 +49,11 @@ class Storage:
 
 
     def _remove_docstrings(self, node):
-        """
-        Recursively remove docstrings from an AST node.
-        """
         if not hasattr(node, "body"):
             return
 
         if isinstance(node.body, list) and node.body:
-            # Check if first statement is a docstring
+            # Checking for first statment docstring
             if (isinstance(node.body[0], ast.Expr) and
                 isinstance(node.body[0].value, ast.Constant) and
                 isinstance(node.body[0].value.value, str)):
@@ -84,8 +73,6 @@ class Storage:
             try:
                 new_hash = self._get_hash(file)
             except (FileNotFoundError, NotADirectoryError):
-                # file doesn't exist (anymore)
-                # treat as changed but remove from data
                 self._changed_files.add(file)
                 self._data["files"].pop(file)
                 continue
@@ -112,7 +99,6 @@ class Storage:
             if tok_type == tokenize.COMMENT:
                 continue
             elif tok_type == tokenize.STRING:
-                # skip module-level or function-level docstrings
                 if result and result[-1] == '\n':
                     continue
             result.append(tok_str)
@@ -130,15 +116,12 @@ class Storage:
     def is_skippable(self, test_id):
         test_data = self._data["tests"].get(test_id)
         if test_data is None or not test_data["passed"]:
-            # new test or failed previous run
             return False
 
         for file in test_data["deps"]:
             if file in self._changed_files:
-                # dependency changed
                 return False
 
-        # passed previous run and no changed dependencies
         return True
 
     def update_test(self, test_id, file_deps, outcome):
