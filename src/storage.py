@@ -1,6 +1,8 @@
 import hashlib
 import io
 import tokenize
+import ast
+import hashlib
 
 from _pytest.config import Config
 
@@ -10,7 +12,6 @@ EMPTY_DICT = {"files": {}, "tests": {}}
 
 def clear_cache(config: Config):
     config.cache.set(DEPS_FILE_PATH, EMPTY_DICT)
-
 
 class Storage:
     _tracked_files = set()
@@ -29,6 +30,38 @@ class Storage:
     }
     """
 
+    def _get_ast_hash(self, path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                source = f.read()
+
+            # Parse into AST
+            tree = ast.parse(source)
+            self._remove_docstrings(tree)
+            ast_str = ast.dump(tree, include_attributes=False)
+
+            return hashlib.sha256(ast_str.encode("utf-8")).hexdigest()
+
+        except (SyntaxError, UnicodeDecodeError):
+            # Fallback: binary or non-Python files
+            with open(path, "rb") as f:
+                return hashlib.sha256(f.read()).hexdigest()
+
+
+    def _remove_docstrings(self, node):
+        if not hasattr(node, "body"):
+            return
+
+        if isinstance(node.body, list) and node.body:
+            # Checking for first statment docstring
+            if (isinstance(node.body[0], ast.Expr) and
+                isinstance(node.body[0].value, ast.Constant) and
+                isinstance(node.body[0].value.value, str)):
+                node.body.pop(0)
+
+            for child in node.body:
+                self._remove_docstrings(child)
+    
     def __init__(self, config: Config):
         self._config = config
         self._data = self._load_data()
@@ -40,8 +73,6 @@ class Storage:
             try:
                 new_hash = self._get_hash(file)
             except (FileNotFoundError, NotADirectoryError):
-                # file doesn't exist (anymore)
-                # treat as changed but remove from data
                 self._changed_files.add(file)
                 self._data["files"].pop(file)
                 continue
@@ -54,20 +85,12 @@ class Storage:
     
     
     def _get_hash(self, path):
-        """
-        Raises:
-            FileNotFoundError: File not found
-            NotADirectoryError: Directory not found
-        """
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                source = f.read()
-            normalized_code = self._strip_comments(source)
-            return hashlib.sha256(normalized_code.encode("utf-8")).hexdigest()
-        except UnicodeDecodeError:
-            # original method for binary/non-source files
-            with open(path, "rb") as f:
-                return hashlib.sha256(f.read()).hexdigest()
+            return self._get_ast_hash(path)
+        except FileNotFoundError:
+            raise
+        except NotADirectoryError:
+            raise
 
     def _strip_comments(self, source):
         result = []
@@ -76,7 +99,6 @@ class Storage:
             if tok_type == tokenize.COMMENT:
                 continue
             elif tok_type == tokenize.STRING:
-                # skip module-level or function-level docstrings
                 if result and result[-1] == '\n':
                     continue
             result.append(tok_str)
@@ -94,15 +116,12 @@ class Storage:
     def is_skippable(self, test_id):
         test_data = self._data["tests"].get(test_id)
         if test_data is None or not test_data["passed"]:
-            # new test or failed previous run
             return False
 
         for file in test_data["deps"]:
             if file in self._changed_files:
-                # dependency changed
                 return False
 
-        # passed previous run and no changed dependencies
         return True
 
     def update_test(self, test_id, file_deps, outcome):
