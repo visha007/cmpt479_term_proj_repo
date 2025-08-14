@@ -61,11 +61,11 @@ This removes the `jsonData` directory at the start of the pytest run.
 
 ## Where Is the Cache Stored?
 
-- Dependencies and hash info are stored in:
+Dependencies and hash info are stored in:
 
-  ```
-  pytest_project_root/jsondata/deps.json
-  ```
+```
+pytest_project_root/jsondata/deps.json
+```
 
 ---
 
@@ -98,7 +98,7 @@ pytest --ekstazi
 ---
 
 ### Realistic Example: Running Ekstazi for Python on Click
-This example requires `pdm` but can be adapted for other package managers
+This example uses `click` but can be adapted for other python test projects
 ```
 # Clone Click
 git clone https://github.com/pallets/click.git
