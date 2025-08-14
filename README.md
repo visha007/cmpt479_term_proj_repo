@@ -87,7 +87,7 @@ def add(a, b):
     return a + b
 ```
 
-Add `cmpt479_term_proj_repo` and `requirements.txt` dependencies.
+Add `ekstazi4py` and `requirements.txt` dependencies.
 
 Now run:
 
@@ -100,15 +100,17 @@ pytest --ekstazi
 ### Realistic Example: Running Ekstazi for Python on Click
 This example uses `click` but can be adapted for other python test projects
 ```
-# Clone Click
+# Clone repo
 git clone https://github.com/pallets/click.git
 cd click
 
-# Create a virtual environment
+# Create virtual environment (replace `python` with `python3` if needed):
+We recommend running ekstazi4py inside a virtual environment to keep dependencies isolated and avoid conflicts with other Python projects.
+
 python -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
 
-# Install Click's dev dependencies
+# Install project's dev dependencies
 pip install .[dev]
 
 # Install Ekstazi for Python
@@ -118,12 +120,12 @@ pip install -r ../path/to/ekstazi4py/requirements.txt
 # Run all tests for the first time (builds dependency cache)
 pytest --ekstazi
 
-# Simulate a code change
+# Simulate a code change in test project
 echo "# random change" >> src/click/core.py
 
-# Run tests again — only those affected by the change will run
+# Re-run tests — only those affected by the change will run
 pytest --ekstazi
 
-# Run once more with no changes — no tests should run
+# Re-run once more with no changes - no new tests should run (compare results across runs)
 pytest --ekstazi
 ```
