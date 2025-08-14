@@ -1,5 +1,5 @@
-# cmpt479_term_proj_repo
-This repo will contain code for our term project for CMPT479 D2 (Summer 2025)
+# Ekstazi for Python
+This repository contains the code for our CMPT 479 (Summer 2025) term project — **Ekstazi for Python**, a regression test selection tool inspired by Ekstazi for Java, adapted to work with Python projects using `pytest`.
 
 ## Project Structure
 
@@ -19,26 +19,31 @@ This repo will contain code for our term project for CMPT479 D2 (Summer 2025)
 
 ### 1. Install Python dependencies
 
-From your pytest project using `pip`, do
+From the root of the target project (e.g., `click`, `flask`, etc.):
 
 ```bash
-pip install path/to/cmpt479_term_proj_repo/
-pip install -r path/to/cmpt479_term_proj_repo/requirements.txt
+pip install path/to/ekstazi4py/
+pip install -r path/to/ekstazi4py/requirements.txt
 ```
 
 ---
 
 ## 2. Running the Tool
 
-From the pytest project root (where `test_sample.py` is), run:
+From the root directory of the project you want to test (i.e., the folder where your test files are located), run:
 
 ```bash
 pytest --ekstazi
 ```
 
 This will:
-- Run only tests whose dependencies have changed
+- Run only tests whose dependencies have changed since the last run
 - Cache dependency info in `pytest_project_root/jsonData/deps.json`
+
+
+> ⚠️ **Note:** If you’re following along with our demo in the [Basic Example](#basic-example) below,  
+> this root directory is the same folder where you created `test_sample.py`.  
+> In your own project, simply replace `test_sample.py` with your actual test files.
 
 ---
 
@@ -92,17 +97,33 @@ pytest --ekstazi
 
 ---
 
-### Realistic Example: Testing on the pytest repo
+### Realistic Example: Running Ekstazi for Python on Click
 This example requires `pdm` but can be adapted for other package managers
-```sh
-git clone https://github.com/pytest-dev/pytest.git
-cd pytest
-pdm install
-pdm add ../path/to/cmpt479_term_proj_repo
-pdm run pytest --ekstazi testing/_py/test_local.py # run a minimal test set. observe results
-echo "# random change" >> src/_pytest/_py/error.py
-pdm run pytest --ekstazi testing/_py/test_local.py # only some tests depending on error.py will be run
-pdm run pytest --ekstazi testing/_py/test_local.py # no tests should run
 ```
+# Clone Click
+git clone https://github.com/pallets/click.git
+cd click
 
-TODO: Sometimes tests are missed? I'm not sure why. Maybe there's some overlap in the coverage thing so we need a global dictionary or something
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+
+# Install Click's dev dependencies
+pip install .[dev]
+
+# Install Ekstazi for Python
+pip install ../path/to/ekstazi4py
+pip install -r ../path/to/ekstazi4py/requirements.txt
+
+# Run all tests for the first time (builds dependency cache)
+pytest --ekstazi
+
+# Simulate a code change
+echo "# random change" >> src/click/core.py
+
+# Run tests again — only those affected by the change will run
+pytest --ekstazi
+
+# Run once more with no changes — no tests should run
+pytest --ekstazi
+```
