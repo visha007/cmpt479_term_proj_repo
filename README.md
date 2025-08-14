@@ -17,7 +17,7 @@ This repository contains the code for our CMPT 479 (Summer 2025) term project â€
 
 ---
 
-### 1. Install Python dependencies
+### 1. Install Project dependencies
 
 From the root of the target project (e.g., `click`, `flask`, etc.):
 
@@ -28,7 +28,7 @@ pip install -r path/to/ekstazi4py/requirements.txt
 
 ---
 
-## 2. Running the Tool
+### 2. Running the Tool
 
 From the root directory of the project you want to test (i.e., the folder where your test files are located), run:
 
