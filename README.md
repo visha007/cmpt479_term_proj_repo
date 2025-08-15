@@ -23,7 +23,6 @@ From the root of the target project (e.g., `click`, `flask`, etc.):
 
 ```bash
 pip install path/to/ekstazi4py/
-pip install -r path/to/ekstazi4py/requirements.txt
 ```
 
 ---
@@ -38,7 +37,7 @@ pytest --ekstazi
 
 This will:
 - Run only tests whose dependencies have changed since the last run
-- Cache dependency info in `pytest_project_root/jsonData/deps.json`
+- Cache dependency info in `pytest_project_root/.pytest_cache/v/ekstazi/dependencies.json`
 
 
 > ⚠️ **Note:** If you’re following along with our demo in the [Basic Example](#basic-example) below,  
@@ -55,7 +54,7 @@ To delete the dependency cache:
 pytest --ekstazi-clean
 ```
 
-This removes the `jsonData` directory at the start of the pytest run.
+This resets the `.pytest_cache/v/ekstazi/dependencies.json` file contents at the start of the pytest run.
 
 ---
 
@@ -64,7 +63,7 @@ This removes the `jsonData` directory at the start of the pytest run.
 Dependencies and hash info are stored in:
 
 ```
-pytest_project_root/jsondata/deps.json
+pytest_project_root/.pytest_cache/v/ekstazi/dependencies.json
 ```
 
 ---
@@ -87,7 +86,7 @@ def add(a, b):
     return a + b
 ```
 
-Add `ekstazi4py` and `requirements.txt` dependencies.
+Add `ekstazi4py` and `pytest` dependencies.
 
 Now run:
 
@@ -98,30 +97,34 @@ pytest --ekstazi
 ---
 
 ### Realistic Example: Running Ekstazi for Python on Click
-This example uses `click` but can be adapted for other python test projects
+This example uses `click` project but can be adapted for other python test projects
 ```
 # Clone repo
 git clone https://github.com/pallets/click.git
 cd click
 
 # Create virtual environment (replace `python` with `python3` if needed):
-We recommend running ekstazi4py inside a virtual environment to keep dependencies isolated and avoid conflicts with other Python projects.
-
+# We recommend running ekstazi4py inside a virtual environment to keep dependencies isolated and avoid conflicts with other Python projects.
 python -m venv venv
 source venv/bin/activate  # On Windows use: venv\Scripts\activate
 
-# Install project's dev dependencies
-pip install .[dev]
+# Install project's dev dependencies (pip doesn't fully support click's pyproject.toml so manually install pytest)
+pip install -e . pytest
 
 # Install Ekstazi for Python
 pip install ../path/to/ekstazi4py
-pip install -r ../path/to/ekstazi4py/requirements.txt
+# or
+pip install git+https://github.com/visha007/ekstazi4py 
+
+# you may have to re-activate the environment 
+$ source venv/bin/activate  # On Windows use: venv\Scripts\activate
 
 # Run all tests for the first time (builds dependency cache)
+# you may have to re-activate the virtual environment first depending on the machine if there are issues
 pytest --ekstazi
 
 # Simulate a code change in test project
-echo "# random change" >> src/click/core.py
+echo -e "\nx = 42" >> src/click/core.py
 
 # Re-run tests — only those affected by the change will run
 pytest --ekstazi
